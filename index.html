@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="az">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JARVIS</title>
+  <meta name="description" content="Claude-a bağlı şəxsi səsli köməkçi">
+  <meta name="theme-color" content="#04080c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='none' stroke='%234fd1ff' stroke-width='4' stroke-dasharray='20 8'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%234fd1ff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="app" id="app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name" id="brandName">JARVIS</span>
+        <span class="brand-sub">şəxsi köməkçi</span>
+      </div>
+      <div class="status-chip" id="statusChip" data-state="idle" role="status">HAZIR</div>
+      <div class="topbar-right">
+        <div class="clock" aria-label="Saat">
+          <span class="clock-time" id="clockTime">--:--</span>
+          <span class="clock-date" id="clockDate"></span>
+        </div>
+        <button class="icon-btn panel-toggle" id="panelToggle" type="button" aria-label="Paneli aç" aria-expanded="false" aria-controls="side">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="console" aria-label="Söhbət">
+        <div class="stage">
+          <canvas id="core" class="core" aria-hidden="true"></canvas>
+          <p class="stage-caption" id="stageCaption">Yaz və ya mikrofona toxun</p>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+      </section>
+
+      <div class="side-backdrop" id="sideBackdrop" hidden></div>
+      <aside class="side" id="side" aria-label="Panel">
+        <section class="card">
+          <header class="card-head">
+            <h2>Tapşırıqlar</h2>
+            <span class="count" id="taskCount">0</span>
+          </header>
+          <form class="task-add" id="taskForm" autocomplete="off">
+            <input id="taskInput" type="text" maxlength="300" placeholder="Yeni tapşırıq…" aria-label="Yeni tapşırıq">
+            <input id="taskDue" type="datetime-local" aria-label="Vaxt (istəyə bağlı)">
+            <button class="btn small" type="submit">Əlavə et</button>
+          </form>
+          <ul class="tasks" id="taskList"></ul>
+          <p class="hint" id="taskHint">Səslə də deyə bilərsən: “Sabah saat 10-da imtahanı xatırlat”.</p>
+        </section>
+
+        <section class="card">
+          <header class="card-head"><h2>Rejim</h2></header>
+          <div class="segmented" id="modeGroup" role="radiogroup" aria-label="Claude rejimi">
+            <button type="button" role="radio" data-mode="quick"><b>Sürətli</b><small>söhbət</small></button>
+            <button type="button" role="radio" data-mode="smart"><b>Ağıllı</b><small>kod, iş</small></button>
+            <button type="button" role="radio" data-mode="deep"><b>Dərin</b><small>çətin işlər</small></button>
+          </div>
+        </section>
+
+        <section class="card">
+          <header class="card-head"><h2>Səs</h2></header>
+          <label class="switch"><input type="checkbox" id="optVoice"><span>Cavabları səsli oxu</span></label>
+          <label class="switch"><input type="checkbox" id="optHands"><span>Əlləri sərbəst: cavabdan sonra özü dinləsin</span></label>
+          <label class="field"><span>Səs</span><select id="optVoiceName"></select></label>
+          <label class="field"><span>Danışıq dili (mikrofon)</span>
+            <select id="optLang">
+              <option value="az-AZ">Azərbaycan</option>
+              <option value="tr-TR">Türk</option>
+              <option value="en-US">English</option>
+              <option value="ru-RU">Русский</option>
+            </select>
+          </label>
+          <label class="field"><span>Sürət <output id="rateOut">1.0×</output></span><input type="range" id="optRate" min="0.7" max="1.5" step="0.1" value="1"></label>
+        </section>
+
+        <section class="card">
+          <header class="card-head"><h2>Sistem</h2></header>
+          <dl class="sys" id="sysList"></dl>
+          <div class="sys-actions">
+            <button class="btn small ghost" type="button" id="notifyBtn">Bildirişləri aç</button>
+            <span class="confirm" id="clearWrap">
+              <button class="btn small ghost" type="button" id="clearBtn">Söhbəti təmizlə</button>
+            </span>
+            <button class="btn small ghost" type="button" id="logoutBtn">Çıxış</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="attachments" id="attachments" hidden></div>
+      <div class="composer-row">
+        <button class="icon-btn" type="button" id="attachBtn" aria-label="Şəkil əlavə et" title="Şəkil əlavə et">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5l-8.4 8.4a5 5 0 01-7.1-7.1l8.4-8.4a3.3 3.3 0 014.7 4.7l-8.4 8.4a1.7 1.7 0 01-2.4-2.4l7.7-7.7"/></svg>
+        </button>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+        <textarea id="input" rows="1" placeholder="Yaz və ya mikrofona toxun…" aria-label="Mesaj"></textarea>
+        <button class="mic" type="button" id="micBtn" aria-label="Danış (Alt+M)" title="Danış (Alt+M)" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></svg>
+        </button>
+        <button class="send" type="submit" id="sendBtn" aria-label="Göndər">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5L4 12z"/></svg>
+        </button>
+        <button class="send stop" type="button" id="stopBtn" aria-label="Dayandır (Esc)" title="Dayandır (Esc)" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+        </button>
+      </div>
+      <p class="composer-hint">Enter — göndər · Shift+Enter — yeni sətir · Alt+M — mikrofon · Esc — dayandır</p>
+    </form>
+  </div>
+
+  <div class="gate" id="gate">
+    <div class="gate-panel">
+      <canvas id="gateCore" class="gate-core" aria-hidden="true"></canvas>
+      <h1 class="gate-title" id="gateTitle">JARVIS</h1>
+      <p class="gate-sub" id="gateSub">Sistem yüklənir…</p>
+
+      <form class="login" id="loginForm" hidden>
+        <label class="field"><span>E-poçt</span><input id="loginEmail" type="email" autocomplete="username" required></label>
+        <label class="field"><span>Şifrə</span><input id="loginPass" type="password" autocomplete="current-password" required></label>
+        <button class="btn" type="submit" id="loginBtn">Daxil ol</button>
+        <p class="form-error" id="loginError" role="alert"></p>
+      </form>
+
+      <div class="setup" id="setupBox" hidden>
+        <p><b>config.js</b> hələ doldurulmayıb, ona görə sayt Supabase-ə qoşula bilmir. README faylındakı addımları izlə.</p>
+        <button class="btn" type="button" id="demoBtn">Demo rejimdə bax</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

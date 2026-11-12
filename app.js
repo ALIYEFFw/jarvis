@@ -391,7 +391,7 @@ function createDemoBackend() {
       if (/hava|weather/.test(q)) {
         onEvent({ type: "tool", name: "get_weather", input: { city: CFG.CITY } });
         await wait(800);
-        reply = "Demo rejimdə real hava məlumatı yoxdur. Claude qoşulandan sonra burada canlı temperatur, külək və üç günlük proqnoz olacaq.";
+        reply = "Demo rejimdə real hava məlumatı yoxdur. Gemini qoşulandan sonra burada canlı temperatur, külək və üç günlük proqnoz olacaq.";
       } else if (/kod|code|python|kalkulyator|javascript|html/.test(q)) {
         reply = DEMO_CODE;
       } else if (/xatırlat|tapşırıq|remind/.test(q)) {
@@ -402,7 +402,7 @@ function createDemoBackend() {
         tasksChanged = true;
         reply = `Yazdım: “${title}”. Demo rejimdə tapşırıq yalnız bu səhifə açıq olduqca qalır.`;
       } else {
-        reply = "Demo rejimdəyəm, Claude hələ qoşulmayıb. config.js faylını doldurub Supabase funksiyasını yerləşdirəndən sonra istənilən suala real cavab verəcəyəm.";
+        reply = "Demo rejimdəyəm, Gemini hələ qoşulmayıb. config.js faylını doldurub Supabase funksiyasını yerləşdirəndən sonra istənilən suala real cavab verəcəyəm.";
       }
       for (let i = 0; i < reply.length; i += 4) {
         await wait(14);
@@ -618,7 +618,7 @@ function showWelcome() {
   w.append(h("h1", null, `Salam${CFG.USER_NAME ? `, ${CFG.USER_NAME}` : ""}.`));
   w.append(
     h("p", null, backend?.demo
-      ? "Demo rejimdəsən: cavablar nümunədir, Claude hələ qoşulmayıb. Quraşdırma addımları README faylındadır."
+      ? "Demo rejimdəsən: cavablar nümunədir, Gemini hələ qoşulmayıb. Quraşdırma addımları README faylındadır."
       : "Bütün sistemlər işləkdir. Mənə yaz və ya mikrofona toxunub danış: kod yazdıra, hava soruşa, xatırlatma qoya bilərsən."),
   );
   const chips = h("div", "chips");
@@ -990,7 +990,7 @@ function fillVoiceSelect() {
 
 function updateSys() {
   const rows = [];
-  rows.push(["Claude", claudeStatus.text, claudeStatus.cls]);
+  rows.push(["Gemini", claudeStatus.text, claudeStatus.cls]);
   rows.push(["Mikrofon", Listener.supported ? "dəstəklənir" : "bu brauzerdə yoxdur", Listener.supported ? "ok" : "warn"]);
   if (Voice.supported) {
     const az = Voice.voices.some((v) => /^az/i.test(v.lang));
